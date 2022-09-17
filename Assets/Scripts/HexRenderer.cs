@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public struct Face {
     public List<Vector3> vertices {get; private set;}
@@ -15,16 +16,24 @@ public struct Face {
 
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshRenderer))]
+[RequireComponent(typeof(EventTrigger))]
+[RequireComponent(typeof(BoxCollider))]
 public class HexRenderer : MonoBehaviour
 {
     // Start is called before the first frame update
     private Mesh m_mesh;
+    private BoxCollider m_collider;
     private MeshFilter m_meshFilter;
     private MeshRenderer m_meshRenderer;
     public Vector2Int coordinate;
     public Material material;
 
+    public float innerSize;
+    public float outerSize;
+    public float height;
+
     private void Awake() {
+        m_collider = GetComponent<BoxCollider>();
         m_meshFilter = GetComponent<MeshFilter>();
         m_meshRenderer = GetComponent<MeshRenderer>();
 
@@ -33,6 +42,7 @@ public class HexRenderer : MonoBehaviour
 
         m_meshFilter.mesh = m_mesh;
         m_meshRenderer.material = material;
+        triggerSelect();
     }
 
     private void OnEnable() {
@@ -51,9 +61,6 @@ public class HexRenderer : MonoBehaviour
     }
 
     private List<Face> m_faces;
-    public float innerSize;
-    public float outerSize;
-    public float height;
     private void DrawFaces() {
         m_faces = new List<Face>();
         for (int point = 0; point < 6; point++) {
@@ -111,10 +118,19 @@ public class HexRenderer : MonoBehaviour
         m_mesh.triangles = tris.ToArray();
         m_mesh.uv = uvs.ToArray();
         m_mesh.RecalculateNormals();
+        m_collider.size = new Vector3(outerSize + outerSize * 3f/4f, height, outerSize + outerSize * 3f/4f);
     }
 
-    private void OnMouseDown()
-    {
-        Debug.Log("OnMouseDown");
+    private void triggerSelect () {
+        EventTrigger.Entry entry = new EventTrigger.Entry();
+        entry.eventID = EventTriggerType.PointerClick;
+        entry.callback = new EventTrigger.TriggerEvent();
+        UnityEngine.Events.UnityAction<BaseEventData> callback = new UnityEngine.Events.UnityAction<BaseEventData>(selectHex);
+        entry.callback.AddListener(callback);
+        GetComponent<EventTrigger>().triggers.Add(entry);
+    }
+
+    public void selectHex (BaseEventData e) {
+        Debug.Log(this.coordinate);
     }
 }
